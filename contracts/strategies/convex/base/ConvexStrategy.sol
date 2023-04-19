@@ -35,6 +35,7 @@ contract ConvexStrategy is BaseUpgradeableStrategy {
   bytes32 internal constant _CURVE_DEPOSIT_SLOT = 0xb306bb7adebd5a22f5e4cdf1efa00bc5f62d4f5554ef9d62c1b16327cd3ab5f9;
   bytes32 internal constant _NTOKENS_SLOT = 0xbb60b35bae256d3c1378ff05e8d7bee588cd800739c720a107471dfa218f74c1;
   bytes32 internal constant _METAPOOL_SLOT = 0x567ad8b67c826974a167f1a361acbef5639a3e7e02e99edbc648a84b0923d5b7;
+  bytes32 internal constant _FACTORYPOOL_SLOT = 0x500e267ef080ca4b1fe5982fc057193811113b41ddc8ea0538460e8d197f4eb1;
 
   // this would be reset on each upgrade
   address[] public WETH2deposit;
@@ -49,6 +50,7 @@ contract ConvexStrategy is BaseUpgradeableStrategy {
     assert(_CURVE_DEPOSIT_SLOT == bytes32(uint256(keccak256("eip1967.strategyStorage.curveDeposit")) - 1));
     assert(_NTOKENS_SLOT == bytes32(uint256(keccak256("eip1967.strategyStorage.nTokens")) - 1));
     assert(_METAPOOL_SLOT == bytes32(uint256(keccak256("eip1967.strategyStorage.metaPool")) - 1));
+    assert(_FACTORYPOOL_SLOT == bytes32(uint256(keccak256("eip1967.strategyStorage.factoryPool")) - 1));
   }
 
   function initializeBaseStrategy(
@@ -61,7 +63,8 @@ contract ConvexStrategy is BaseUpgradeableStrategy {
     uint256 _depositArrayPosition,
     address _curveDeposit,
     uint256 _nTokens,
-    bool _metaPool
+    bool _metaPool,
+    bool _factoryPool
   ) public initializer {
 
     BaseUpgradeableStrategy.initialize(
@@ -88,6 +91,7 @@ contract ConvexStrategy is BaseUpgradeableStrategy {
     _setCurveDeposit(_curveDeposit);
     _setNTokens(_nTokens);
     _setMetaPool(_metaPool);
+    _setFactoryPool(_factoryPool);
   }
 
   function depositArbCheck() public pure returns(bool) {
@@ -278,7 +282,12 @@ contract ConvexStrategy is BaseUpgradeableStrategy {
       uint256[3] memory depositArray;
       depositArray[_depositArrayPosition] = tokenBalance;
       if (_metaPool) {
-        address pool = ICurveLP(underlying()).minter();
+        address pool;
+        if (factoryPool()) {
+          pool = underlying();
+        } else {
+          pool = ICurveLP(underlying()).minter();
+        }
         ICurveDeposit_3token_meta(_curveDeposit).add_liquidity(pool, depositArray, minimum);
       } else {
         ICurveDeposit_3token_underlying(_curveDeposit).add_liquidity(depositArray, minimum, true);
@@ -287,7 +296,12 @@ contract ConvexStrategy is BaseUpgradeableStrategy {
       uint256[4] memory depositArray;
       depositArray[_depositArrayPosition] = tokenBalance;
       if (_metaPool) {
-        address pool = ICurveLP(underlying()).minter();
+        address pool;
+        if (factoryPool()) {
+          pool = underlying();
+        } else {
+          pool = ICurveLP(underlying()).minter();
+        }
         ICurveDeposit_4token_meta(_curveDeposit).add_liquidity(pool, depositArray, minimum);
       } else {
         ICurveDeposit_4token(_curveDeposit).add_liquidity(depositArray, minimum);
@@ -450,6 +464,14 @@ contract ConvexStrategy is BaseUpgradeableStrategy {
 
   function metaPool() public view returns (bool) {
     return getBoolean(_METAPOOL_SLOT);
+  }
+
+  function _setFactoryPool(bool _value) internal {
+    setBoolean(_FACTORYPOOL_SLOT, _value);
+  }
+
+  function factoryPool() public view returns (bool) {
+    return getBoolean(_FACTORYPOOL_SLOT);
   }
 
   function finalizeUpgrade() external onlyGovernance {
