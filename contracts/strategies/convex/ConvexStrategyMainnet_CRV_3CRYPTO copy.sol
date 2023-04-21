@@ -27,7 +27,8 @@ contract ConvexStrategyMainnet_CRV_3CRYPTO is ConvexStrategy {
       5, //depositArrayPosition. Find deposit transaction -> input params
       curveDeposit, // deposit contract: usually underlying. Find deposit transaction -> interacted contract
       6, //nTokens -> total number of deposit tokens
-      true //metaPool -> if LP token address == pool address (at curve)
+      true, //metaPool -> if LP token address == pool address (at curve)
+      false //factoryPool
     );
     rewardTokens = [crv, cvx];
     reward2WETH[crv] = [crv, weth];
