@@ -14,7 +14,7 @@ const IERC20 = artifacts.require("IERC20");
 //const Strategy = artifacts.require("");
 const Strategy = artifacts.require("BalancerStrategyV3Mainnet_wUSDR_USDC");
 
-// Developed and tested at blockNumber 40494000
+// Developed and tested at blockNumber 43206470
 
 // Vanilla Mocha test. Increased compatibility with tools that integrate Mocha.
 describe("Polygon Mainnet Balancer wUSDR-USDC V3", function() {
@@ -24,7 +24,7 @@ describe("Polygon Mainnet Balancer wUSDR-USDC V3", function() {
   let underlying;
 
   // external setup
-  let underlyingWhale = "0x3ec783B1C10d39F1653C20C821E0ed810eAf6A2e";
+  let underlyingWhale = "0xD20eE08A92449bCFD1Eeb04C0fa6f6d03dfd1cBC";
 
   // parties in the protocol
   let governance;
@@ -45,14 +45,14 @@ describe("Polygon Mainnet Balancer wUSDR-USDC V3", function() {
 
   async function setupBalance(){
     let etherGiver = accounts[9];
-    await send.ether(etherGiver, underlyingWhale, "100" + "000000000000000000");
+    await web3.eth.sendTransaction({ from: etherGiver, to: underlyingWhale, value: 100e18});
 
     farmerBalance = await underlying.balanceOf(underlyingWhale);
     await underlying.transfer(farmer1, farmerBalance, { from: underlyingWhale });
   }
 
   before(async function() {
-    governance = "0xf00dD244228F51547f0563e60bCa65a30FBF5f7f";
+    governance = addresses.Governance;
     accounts = await web3.eth.getAccounts();
 
     farmer1 = accounts[1];
@@ -61,7 +61,7 @@ describe("Polygon Mainnet Balancer wUSDR-USDC V3", function() {
     await impersonates([governance, underlyingWhale]);
 
     let etherGiver = accounts[9];
-    await send.ether(etherGiver, governance, "100" + "000000000000000000");
+    await web3.eth.sendTransaction({ from: etherGiver, to: governance, value: 100e18});
 
     await setupExternalContracts();
     [controller, vault, strategy] = await setupCoreProtocol({
