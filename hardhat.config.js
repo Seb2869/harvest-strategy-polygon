@@ -23,7 +23,7 @@ module.exports = {
       chainId: 137,
       forking: {
         url: `https://polygon-mainnet.g.alchemy.com/v2/${secret.alchemyKey}`,
-        blockNumber: 24152600, // <-- edit here
+        blockNumber: 43206470, // <-- edit here
       },
     },
     mainnet: {
