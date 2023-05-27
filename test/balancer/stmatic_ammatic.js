@@ -14,7 +14,7 @@ const IERC20 = artifacts.require("IERC20");
 //const Strategy = artifacts.require("");
 const Strategy = artifacts.require("BalancerStrategyV3Mainnet_stMatic_amMatic");
 
-// Developed and tested at blockNumber 41712600
+// Developed and tested at blockNumber 43206470
 
 // Vanilla Mocha test. Increased compatibility with tools that integrate Mocha.
 describe("Polygon Mainnet Balancer stMatic-amMatic", function() {
@@ -24,7 +24,7 @@ describe("Polygon Mainnet Balancer stMatic-amMatic", function() {
   let underlying;
 
   // external setup
-  let underlyingWhale = "0x854B004700885A61107B458f11eCC169A019b764";
+  let underlyingWhale = "0xbf3c756d1c0565Dc4e8728EbBB3B46718e032257";
 
   // parties in the protocol
   let governance;
@@ -45,7 +45,7 @@ describe("Polygon Mainnet Balancer stMatic-amMatic", function() {
 
   async function setupBalance(){
     let etherGiver = accounts[9];
-    await send.ether(etherGiver, underlyingWhale, "100" + "000000000000000000");
+    await web3.eth.sendTransaction({ from: etherGiver, to: underlyingWhale, value: 100e18});
 
     farmerBalance = await underlying.balanceOf(underlyingWhale);
     await underlying.transfer(farmer1, farmerBalance, { from: underlyingWhale });
@@ -61,7 +61,7 @@ describe("Polygon Mainnet Balancer stMatic-amMatic", function() {
     await impersonates([governance, underlyingWhale]);
 
     let etherGiver = accounts[9];
-    await send.ether(etherGiver, governance, "100" + "000000000000000000");
+    await web3.eth.sendTransaction({ from: etherGiver, to: governance, value: 100e18});
 
     await setupExternalContracts();
     [controller, vault, strategy] = await setupCoreProtocol({

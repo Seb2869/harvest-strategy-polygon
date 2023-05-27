@@ -17,7 +17,8 @@ contract BalancerStrategyV3Mainnet_stMatic_amMatic is BalancerStrategyV3 {
     address wmatic = address(0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270);
     address bal = address(0x9a71012B13CA4d3D0Cdc72A177DF3ef03b0E76A3);
     address ldo = address(0xC3C7d422809852031b44ab29EEC9F1EfF2A58756);
-    address gauge = address(0x51BE9bC648714CC07503Ad46F354BC8D1A3B727B);
+    address usdc = address(0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174);
+    address gauge = address(0x1e916950A659Da9813EE34479BFf04C732E03deb);
     BalancerStrategyV3.initializeBaseStrategy(
       _storage,
       underlying,
@@ -28,9 +29,10 @@ contract BalancerStrategyV3Mainnet_stMatic_amMatic is BalancerStrategyV3 {
       stMatic,   //depositToken
       true      //boosted
     );
-    rewardTokens = [bal, ldo];
+    rewardTokens = [bal, ldo, usdc];
     reward2WETH[bal] = [bal, weth];
     reward2WETH[ldo] = [ldo, wmatic, weth];
+    reward2WETH[usdc] = [usdc, weth];
     WETH2deposit = [weth, wmatic, stMatic];
     poolIds[bal][weth] = 0x3d468ab2329f296e1b9d8476bb54dd77d8c2320f000200000000000000000426;
   }

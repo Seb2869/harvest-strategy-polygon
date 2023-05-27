@@ -10,7 +10,8 @@ import "../../base/interface/IVault.sol";
 import "../../base/upgradability/BaseUpgradeableStrategy.sol";
 import "../../base/interface/uniswap/IUniswapV2Pair.sol";
 import "./interface/IBVault.sol";
-import "../../base/interface/curve/Gauge.sol";
+import "./interface/IBalanceMinter.sol";
+import "./interface/Gauge.sol";
 
 contract BalancerStrategyV3 is BaseUpgradeableStrategy {
 
@@ -431,7 +432,9 @@ contract BalancerStrategyV3 is BaseUpgradeableStrategy {
   *   when the investing is being paused by governance.
   */
   function doHardWork() external onlyNotPausedInvesting restricted {
-    Gauge(rewardPool()).claim_rewards();
+    address _rewardPool = rewardPool();
+    IBalancerMinter(Gauge(_rewardPool).bal_pseudo_minter()).mint(_rewardPool);
+    Gauge(_rewardPool).claim_rewards();
     _liquidateReward();
     _investAllUnderlying();
   }

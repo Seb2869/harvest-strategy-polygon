@@ -45,14 +45,14 @@ describe("Polygon Mainnet Convex 3CRYPTO", function() {
 
   async function setupBalance(){
     let etherGiver = accounts[9];
-    await send.ether(etherGiver, underlyingWhale, "100" + "000000000000000000");
+    await web3.eth.sendTransaction({ from: etherGiver, to: underlyingWhale, value: 100e18});
 
     farmerBalance = await underlying.balanceOf(underlyingWhale);
     await underlying.transfer(farmer1, farmerBalance, { from: underlyingWhale });
   }
 
   before(async function() {
-    governance = "0xf00dD244228F51547f0563e60bCa65a30FBF5f7f";
+    governance = addresses.Governance;
     accounts = await web3.eth.getAccounts();
 
     farmer1 = accounts[1];
@@ -61,7 +61,7 @@ describe("Polygon Mainnet Convex 3CRYPTO", function() {
     await impersonates([governance, underlyingWhale]);
 
     let etherGiver = accounts[9];
-    await send.ether(etherGiver, governance, "100" + "000000000000000000");
+    await web3.eth.sendTransaction({ from: etherGiver, to: governance, value: 10e18});
 
     await setupExternalContracts();
     [controller, vault, strategy] = await setupCoreProtocol({

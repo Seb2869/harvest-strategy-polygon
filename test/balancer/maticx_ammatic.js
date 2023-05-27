@@ -14,7 +14,7 @@ const IERC20 = artifacts.require("IERC20");
 //const Strategy = artifacts.require("");
 const Strategy = artifacts.require("BalancerStrategyV3Mainnet_MaticX_amMatic");
 
-// Developed and tested at blockNumber 41712600
+// Developed and tested at blockNumber 43206470
 
 // Vanilla Mocha test. Increased compatibility with tools that integrate Mocha.
 describe("Polygon Mainnet Balancer MaticX-amMatic", function() {
@@ -24,7 +24,7 @@ describe("Polygon Mainnet Balancer MaticX-amMatic", function() {
   let underlying;
 
   // external setup
-  let underlyingWhale = "0x854B004700885A61107B458f11eCC169A019b764";
+  let underlyingWhale = "0xe847B3bBA4c93846F70159a91651EB02b91e4b45";
 
   // parties in the protocol
   let governance;
