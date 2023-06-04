@@ -12,19 +12,19 @@ const BigNumber = require("bignumber.js");
 const IERC20 = artifacts.require("IERC20");
 
 //const Strategy = artifacts.require("");
-const Strategy = artifacts.require("BalancerStrategyV3Mainnet_2EUR_PARv2");
+const Strategy = artifacts.require("BalancerStrategyV3Mainnet_MATIC_USDC_ETH_BAL");
 
 // Developed and tested at blockNumber 43206470
 
 // Vanilla Mocha test. Increased compatibility with tools that integrate Mocha.
-describe("Polygon Mainnet Balancer 2EUR PAR", function() {
+describe("Polygon Mainnet Balancer MATIC-USDC-ETH-BAL V3", function() {
   let accounts;
 
   // external contracts
   let underlying;
 
   // external setup
-  let underlyingWhale = "0x3A390fb2D9532e4c995b253604c0dcEc585fA09d";
+  let underlyingWhale = "0xa9F8E7337eBb7982f9f5497BC5Ae98e69e1a39A7";
 
   // parties in the protocol
   let governance;
@@ -39,13 +39,13 @@ describe("Polygon Mainnet Balancer 2EUR PAR", function() {
   let strategy;
 
   async function setupExternalContracts() {
-    underlying = await IERC20.at("0x513CdEE00251F39DE280d9E5f771A6eaFebCc88E");
+    underlying = await IERC20.at("0x0297e37f1873D2DAb4487Aa67cD56B58E2F27875");
     console.log("Fetching Underlying at: ", underlying.address);
   }
 
   async function setupBalance(){
     let etherGiver = accounts[9];
-    await send.ether(etherGiver, underlyingWhale, "100" + "000000000000000000");
+    await web3.eth.sendTransaction({ from: etherGiver, to: underlyingWhale, value: 100e18});
 
     farmerBalance = await underlying.balanceOf(underlyingWhale);
     await underlying.transfer(farmer1, farmerBalance, { from: underlyingWhale });
@@ -61,7 +61,7 @@ describe("Polygon Mainnet Balancer 2EUR PAR", function() {
     await impersonates([governance, underlyingWhale]);
 
     let etherGiver = accounts[9];
-    await send.ether(etherGiver, governance, "100" + "000000000000000000");
+    await web3.eth.sendTransaction({ from: etherGiver, to: governance, value: 100e18});
 
     await setupExternalContracts();
     [controller, vault, strategy] = await setupCoreProtocol({

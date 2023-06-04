@@ -15,7 +15,7 @@ contract BalancerStrategyV3Mainnet_TNGBL_USDC is BalancerStrategyV3 {
     address underlying = address(0x9F9F548354B7C66Dc9a9f3373077D86AAACCF8F2);
     address bal = address(0x9a71012B13CA4d3D0Cdc72A177DF3ef03b0E76A3);
     address usdc = address(0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174);
-    address gauge = address(0x07222E30b751c1AB4A730745aFe19810cFd762c0);
+    address gauge = address(0xb2A8f0f477Aae4D78Ea78d85234233285c91bB08);
     BalancerStrategyV3.initializeBaseStrategy(
       _storage,
       underlying,

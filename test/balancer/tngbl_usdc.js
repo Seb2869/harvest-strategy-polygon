@@ -14,7 +14,7 @@ const IERC20 = artifacts.require("IERC20");
 //const Strategy = artifacts.require("");
 const Strategy = artifacts.require("BalancerStrategyV3Mainnet_TNGBL_USDC");
 
-// Developed and tested at blockNumber 41712600
+// Developed and tested at blockNumber 43206470
 
 // Vanilla Mocha test. Increased compatibility with tools that integrate Mocha.
 describe("Polygon Mainnet Balancer TNGBL-USDC", function() {
