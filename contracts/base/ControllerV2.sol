@@ -14,7 +14,7 @@ import "./interface/IVault.sol";
 import "./RewardForwarderV2.sol";
 
 
-contract Controller is Governable {
+contract ControllerV2 is Governable {
     using SafeERC20 for IERC20;
     using Address for address;
     using SafeMath for uint256;
@@ -27,12 +27,11 @@ contract Controller is Governable {
     address public profitSharingReceiver;
     address public rewardForwarder;
     address public universalLiquidator;
-    address public dolomiteYieldFarmingRouter;
 
     uint256 public nextImplementationDelay;
 
     /// 15% of fees captured go to iFARM stakers
-    uint256 public profitSharingNumerator = 700;
+    uint256 public profitSharingNumerator = 500;
     uint256 public nextProfitSharingNumerator = 0;
     uint256 public nextProfitSharingNumeratorTimestamp = 0;
 
@@ -196,11 +195,6 @@ contract Controller is Governable {
     function setUniversalLiquidator(address _universalLiquidator) public onlyGovernance {
         require(_universalLiquidator != address(0), "new universal liquidator should not be empty");
         universalLiquidator = _universalLiquidator;
-    }
-
-    function setDolomiteYieldFarmingRouter(address _dolomiteYieldFarmingRouter) public onlyGovernance {
-        require(_dolomiteYieldFarmingRouter != address(0), "new reward forwarder should not be empty");
-        dolomiteYieldFarmingRouter = _dolomiteYieldFarmingRouter;
     }
 
     function getPricePerFullShare(address _vault) public view returns (uint256) {

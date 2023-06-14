@@ -1,4 +1,4 @@
-const Vault = artifacts.require("Vault");
+const Vault = artifacts.require("VaultERC4626");
 const VaultProxy = artifacts.require("VaultProxy");
 
 module.exports = async function(implementationAddress, ...args) {
