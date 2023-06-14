@@ -4,7 +4,7 @@ const IController = artifacts.require("IController");
 const IFeeRewardForwarder = artifacts.require("IFeeRewardForwarder");
 const IUniswapRouterV2 = artifacts.require("contracts/base/interface/uniswap/IUniswapV2Router02.sol:IUniswapV2Router02");
 const IERC20 = artifacts.require("IERC20");
-const Vault = artifacts.require("Vault");
+const Vault = artifacts.require("VaultERC4626");
 const WMATIC = artifacts.require("WMATIC")
 const IUpgradeableStrategy = artifacts.require("IUpgradeableStrategy");
 
@@ -30,7 +30,7 @@ async function setupCoreProtocol(config) {
     vault = await Vault.at(config.existingVaultAddress);
     console.log("Fetching Vault at: ", vault.address);
   } else {
-    const implAddress = config.vaultImplementationOverride || addresses.VaultImplementationV1;
+    const implAddress = config.vaultImplementationOverride || addresses.VaultImplementationV2;
     vault = await makeVault(implAddress, addresses.Storage, config.underlying.address, 100, 100, {
       from: config.governance,
     });

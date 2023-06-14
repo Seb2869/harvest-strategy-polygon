@@ -19,4 +19,7 @@ interface IStrategy {
 
     function doHardWork() external;
     function depositArbCheck() external view returns(bool);
+
+    function strategist() external view returns (address);
+    function salvageToken(address recipient, address token, uint amount) external;
 }
