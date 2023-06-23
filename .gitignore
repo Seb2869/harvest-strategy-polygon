@@ -5,6 +5,8 @@ cache
 artifacts
 deployments
 
+scripts/core
+
 secret.json
 secret*.json
 dev-keys.json
