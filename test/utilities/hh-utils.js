@@ -1,12 +1,13 @@
 const makeVault = require("./make-vault.js");
 const addresses = require("../test-config.js");
-const IController = artifacts.require("IController");
-const IFeeRewardForwarder = artifacts.require("IFeeRewardForwarder");
+const IController = artifacts.require("IControllerV2");
+const IRewardForwarder = artifacts.require("IRewardForwarder");
 const IUniswapRouterV2 = artifacts.require("contracts/base/interface/uniswap/IUniswapV2Router02.sol:IUniswapV2Router02");
 const IERC20 = artifacts.require("IERC20");
-const Vault = artifacts.require("VaultERC4626");
+const Vault = artifacts.require("Vault");
 const WMATIC = artifacts.require("WMATIC")
 const IUpgradeableStrategy = artifacts.require("IUpgradeableStrategy");
+const ILiquidatorRegistry = artifacts.require("IUniversalLiquidatorRegistry");
 
 const Utils = require("./Utils.js");
 
@@ -38,7 +39,7 @@ async function setupCoreProtocol(config) {
   }
 
   controller = await IController.at(addresses.Controller);
-  feeRewardForwarder = await IFeeRewardForwarder.at(await controller.feeRewardForwarder());
+  feeRewardForwarder = await IRewardForwarder.at(await controller.rewardForwarder());
 
 
   if (config.feeRewardForwarder) {/*
@@ -152,16 +153,17 @@ async function setupCoreProtocol(config) {
 
   console.log("Strategy Deployed: ", strategy.address);
 
-  if (config.liquidationPath) {
-    const path = config.liquidationPath.path;
-    const router = addresses[config.liquidationPath.router];
-    await feeRewardForwarder.setConversionPath(
-      path[0],
-      path[path.length - 1],
-      path,
-      router,
-      {from: config.governance}
-    );
+  let universalLiquidatorRegistry = await ILiquidatorRegistry.at(addresses.UniversalLiquidatorRegistry);
+  // set liquidation paths
+  if(config.liquidation) {
+    for (i=0;i<config.liquidation.length;i++) {
+      dex = Object.keys(config.liquidation[i])[0];
+      await universalLiquidatorRegistry.setPath(
+        web3.utils.keccak256(dex),
+        config.liquidation[i][dex],
+        {from: config.ULOwner}
+      );
+    }
   }
 
   if (config.announceStrategy === true) {
