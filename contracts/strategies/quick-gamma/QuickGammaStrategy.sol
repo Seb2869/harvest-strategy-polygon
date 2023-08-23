@@ -19,13 +19,14 @@ contract QuickGammaStrategy is BaseUpgradeableStrategy {
 
   address public constant quickRouter = address(0xa5E0829CaCEd8fFDD4De3c43696c57F7D7A678ff);
   address public constant sushiRouter = address(0x1b02dA8Cb0d097eB8D57A175b88c7D8b47997506);
-  address public constant uniProxy = address(0xe0A61107E250f8B5B24bf272baBFCf638569830C);
+  address public constant _uniProxy = address(0xA42d55074869491D60Ac05490376B74cF19B00e6);
   address public constant WMATIC = address(0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270);
   address public constant dQuick = address(0x958d208Cdf087843e9AD98d23823d32E17d723A1);
   address public constant quick = address(0xB5C064F955D8e7F38fE0460C556a72987494eE17);
 
   // additional storage slots (on top of BaseUpgradeableStrategy ones) are defined here
   bytes32 internal constant _POOLID_SLOT = 0x3fd729bfa2e28b7806b03a6e014729f59477b530f995be4d51defc9dad94810b;
+  bytes32 internal constant _UNIPROXY_SLOT = 0x09ff9720152edb4fad4ed05a0b77258f0fce17715f9397342eb08c8d7f965234;
 
   // this would be reset on each upgrade
   mapping (address => mapping (address => address[])) public swapRoutes;
@@ -34,6 +35,7 @@ contract QuickGammaStrategy is BaseUpgradeableStrategy {
 
   constructor() public BaseUpgradeableStrategy() {
     assert(_POOLID_SLOT == bytes32(uint256(keccak256("eip1967.strategyStorage.poolId")) - 1));
+    assert(_UNIPROXY_SLOT == bytes32(uint256(keccak256("eip1967.strategyStorage.uniProxy")) - 1));
   }
 
   function initializeBaseStrategy(
@@ -60,6 +62,7 @@ contract QuickGammaStrategy is BaseUpgradeableStrategy {
     address _lpt = IMasterChef(rewardPool()).lpToken(_poolID);
     require(_lpt == underlying(), "Pool Info does not match underlying");
     _setPoolId(_poolID);
+    setAddress(_UNIPROXY_SLOT, _uniProxy);
   }
 
   function depositArbCheck() public pure returns(bool) {
@@ -180,7 +183,6 @@ contract QuickGammaStrategy is BaseUpgradeableStrategy {
         rewardBalance, 1, swapRoutes[token][_rewardToken], address(this), block.timestamp
       );
     }
-
     uint256 rewardBalance = IERC20(_rewardToken).balanceOf(address(this));
     notifyProfitInRewardToken(rewardBalance);
     uint256 remainingRewardBalance = IERC20(_rewardToken).balanceOf(address(this));
@@ -197,7 +199,6 @@ contract QuickGammaStrategy is BaseUpgradeableStrategy {
     address _token0 = IHypervisor(_underlying).token0();
     address _token1 = IHypervisor(_underlying).token1();
     (uint256 toToken0, uint256 toToken1) = _calculateToTokenAmounts();
-
     (uint256 amount0, uint256 amount1) = _swapToTokens(_token0, _token1, toToken0, toToken1);
     uint256[4] memory minIn = [uint(0), uint(0), uint(0), uint(0)];
 
@@ -205,13 +206,14 @@ contract QuickGammaStrategy is BaseUpgradeableStrategy {
     IERC20(_token0).safeApprove(_underlying, amount0);
     IERC20(_token1).safeApprove(_underlying, 0);
     IERC20(_token1).safeApprove(_underlying, amount1);
-    IUniProxy(uniProxy).deposit(amount0, amount1, address(this), _underlying, minIn);
+    IUniProxy(uniProxy()).deposit(amount0, amount1, address(this), _underlying, minIn);
   }
 
   function _calculateToTokenAmounts() internal view returns(uint256, uint256){
     address pool = underlying();
     (uint256 poolBalance0, uint256 poolBalance1) = IHypervisor(pool).getTotalAmounts();
-    uint256 sqrtPrice0In1 = uint256(IUniProxy(uniProxy).getSqrtTwapX96(pool, 1));
+    address clearing = IUniProxy(uniProxy()).clearance();
+    uint256 sqrtPrice0In1 = uint256(IUniProxy(clearing).getSqrtTwapX96(pool, 1));
     uint256 price0In1 = sqrtPrice0In1.mul(sqrtPrice0In1).div(uint(2**(96 * 2)).div(1e18));
     uint256 totalPoolBalanceIn1 = poolBalance0.mul(price0In1).div(1e18).add(poolBalance1);
     uint256 poolWeight0 = poolBalance0.mul(price0In1).div(totalPoolBalanceIn1);
@@ -371,6 +373,14 @@ contract QuickGammaStrategy is BaseUpgradeableStrategy {
 
   function poolId() public view returns (uint256) {
     return getUint256(_POOLID_SLOT);
+  }
+
+  function _setUniProxy(address _value) public onlyGovernance {
+    setAddress(_UNIPROXY_SLOT, _value);
+  }
+
+  function uniProxy() public view returns (address) {
+    return getAddress(_UNIPROXY_SLOT);
   }
 
   function finalizeUpgrade() external onlyGovernance {

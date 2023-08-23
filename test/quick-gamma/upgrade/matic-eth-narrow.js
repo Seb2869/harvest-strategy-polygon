@@ -8,7 +8,7 @@ const IERC20 = artifacts.require("@openzeppelin/contracts/token/ERC20/IERC20.sol
 
 const Strategy = artifacts.require("QuickGammaStrategyMainnet_MATIC_ETH_narrow");
 
-//This test was developed at blockNumber 39551730
+//This test was developed at blockNumber 45532350
 
 // Vanilla Mocha test. Increased compatibility with tools that integrate Mocha.
 describe("Mainnet Quickswap-Gamma MATIC-ETH (narrow)", function() {
@@ -18,8 +18,9 @@ describe("Mainnet Quickswap-Gamma MATIC-ETH (narrow)", function() {
   let underlying;
 
   // external setup
-  let underlyingWhale = "0x6bdf6D03328e04Cf4E5079eA347e0c413AfcdF63";
+  let underlyingWhale = "0xF8e7523873A4bEB796d9d8000e8eAA73cB5471d5";
   let vaultAddr = "0x506337cc631726A21788B9fDFb6BE6292bA7A835";
+  let uniProxy = "0xA42d55074869491D60Ac05490376B74cF19B00e6";
 
   // parties in the protocol
   let governance;
@@ -41,17 +42,19 @@ describe("Mainnet Quickswap-Gamma MATIC-ETH (narrow)", function() {
   async function setupBalance(){
     let etherGiver = accounts[9];
     // Give whale some ether to make sure the following actions are good
-    await web3.eth.sendTransaction({ from: etherGiver, to: underlyingWhale, value: 1e18});
+    await web3.eth.sendTransaction({ from: etherGiver, to: underlyingWhale, value: 10e18});
 
     farmerBalance = await underlying.balanceOf(underlyingWhale);
     await underlying.transfer(farmer1, farmerBalance, { from: underlyingWhale });
   }
 
   before(async function() {
-    governance = "0xf00dD244228F51547f0563e60bCa65a30FBF5f7f";
+    governance = addresses.Governance;
     accounts = await web3.eth.getAccounts();
 
     farmer1 = accounts[1];
+
+    await web3.eth.sendTransaction({ from: accounts[9], to: governance, value: 10e18});
 
     // impersonate accounts
     await impersonates([governance, underlyingWhale]);
@@ -68,6 +71,8 @@ describe("Mainnet Quickswap-Gamma MATIC-ETH (narrow)", function() {
 
     // whale send underlying to farmers
     await setupBalance();
+
+    await strategy._setUniProxy(uniProxy, {from: governance});
   });
 
   describe("Happy path", function() {
