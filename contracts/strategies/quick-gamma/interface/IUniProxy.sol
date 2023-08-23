@@ -11,4 +11,5 @@ interface IUniProxy {
     uint256[4] memory minIn
   ) external;
   function getSqrtTwapX96(address, uint32) external view returns(uint160);
+  function clearance() external view returns(address);
 }
