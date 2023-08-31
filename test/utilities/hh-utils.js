@@ -185,12 +185,7 @@ async function setupCoreProtocol(config) {
     strategy = await config.strategyArtifact.at(await vault.strategy());
     console.log("Strategy upgrade completed.");
   } else {
-    await controller.addVaultAndStrategy(
-      vault.address,
-      strategy.address,
-      { from: config.governance }
-    );
-    console.log("Strategy and vault added to Controller.");
+    await vault.setStrategy(strategy.address, {from: config.governance});
   }
 
   return [controller, vault, strategy, rewardPool];
@@ -198,7 +193,7 @@ async function setupCoreProtocol(config) {
 
 async function depositVault(_farmer, _underlying, _vault, _amount) {
   await _underlying.approve(_vault.address, _amount, { from: _farmer });
-  await _vault.deposit(_amount, { from: _farmer });
+  await _vault.deposit(_amount, _farmer, { from: _farmer });
 }
 
 async function swapMaticToToken(_farmer, _path, _amountMatic, _router) {
