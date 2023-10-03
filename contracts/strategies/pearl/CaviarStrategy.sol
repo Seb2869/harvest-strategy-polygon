@@ -128,7 +128,7 @@ contract CaviarStrategy is BaseUpgradeableStrategyV2 {
       } else {
         rewardBalance = IERC20(token).balanceOf(address(this));
       }
-      if (rewardBalance == 0) {
+      if (rewardBalance <= 1e10) {
         continue;
       }
       if (token != _rewardToken){

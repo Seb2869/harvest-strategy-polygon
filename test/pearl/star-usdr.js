@@ -84,10 +84,6 @@ describe("Mainnet Pearl STAR-USDR HODL in CVR", function() {
           hodlvaultAddr // fCVR
         ]
       },
-      "liquidation": [
-        {"pearl": [pearl, cvr]},
-        {"pearl": [pearl, usdr, weth]},
-      ],
       "ULOwner": addresses.ULOwner
     });
 
