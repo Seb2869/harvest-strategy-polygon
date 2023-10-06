@@ -6,19 +6,23 @@ const addresses = require("../test-config.js");
 const BigNumber = require("bignumber.js");
 const IERC20 = artifacts.require("@openzeppelin/contracts/token/ERC20/IERC20.sol:IERC20");
 
-const Strategy = artifacts.require("QuickGammaStrategyMainnet_MATIC_ETH_narrow");
+const Strategy = artifacts.require("QuickGammaStrategyV2Mainnet_WBTC_USDC_narrow");
 
-//This test was developed at blockNumber 48395300
+//This test was developed at blockNumber 48397300
 
 // Vanilla Mocha test. Increased compatibility with tools that integrate Mocha.
-describe("Mainnet Quickswap-Gamma MATIC-ETH (narrow)", function() {
+describe("Mainnet Quickswap-Gamma WBTC-USDC (narrow)", function() {
   let accounts;
 
   // external contracts
   let underlying;
 
   // external setup
-  let underlyingWhale = "0xc9DD2A3Cea22266058DB55C162199E78d7F00e39";
+  let underlyingWhale = "0x079E810fB5B21BB8271B12Cd229b0cDA888Bd7Bf";
+  let quick = "0xB5C064F955D8e7F38fE0460C556a72987494eE17";
+  let weth = "0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619";
+  let wbtc = "0x1BFD67037B42Cf73acF2047067bd4F2C47D9BfD6";
+  let usdc = "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174";
 
   // parties in the protocol
   let governance;
@@ -33,7 +37,7 @@ describe("Mainnet Quickswap-Gamma MATIC-ETH (narrow)", function() {
   let strategy;
 
   async function setupExternalContracts() {
-    underlying = await IERC20.at("0x02203f2351E7aC6aB5051205172D3f772db7D814");
+    underlying = await IERC20.at("0x3f35705479d9d77c619b2aAC9dd7a64e57151506");
     console.log("Fetching Underlying at: ", underlying.address);
   }
 
@@ -60,12 +64,16 @@ describe("Mainnet Quickswap-Gamma MATIC-ETH (narrow)", function() {
 
     await setupExternalContracts();
     [controller, vault, strategy] = await setupCoreProtocol({
-      "existingVaultAddress": "0x506337cc631726A21788B9fDFb6BE6292bA7A835",
+      "existingVaultAddress": null,
       "strategyArtifact": Strategy,
       "strategyArtifactIsUpgradable": true,
-      "upgradeStrategy": true,
       "underlying": underlying,
       "governance": governance,
+      "liquidation": [
+        {"quickswap": [quick, weth]},
+        {"quickswap": [quick, usdc]},
+        {"quickswap": [quick, weth, wbtc]},
+      ],
     });
 
     // whale send underlying to farmers
