@@ -5,36 +5,31 @@ pragma solidity 0.6.12;
 import "@openzeppelin/contracts/math/Math.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
-import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
-import "../../base/upgradability/BaseUpgradeableStrategy.sol";
+import "../../base/upgradability/BaseUpgradeableStrategyV2.sol";
+import "../../base/interface/IUniversalLiquidator.sol";
 import "./interface/IMasterChef.sol";
 import "./interface/IHypervisor.sol";
 import "./interface/IUniProxy.sol";
 import "./interface/IDragonLair.sol";
 import "./interface/IClearing.sol";
 
-contract QuickGammaStrategy is BaseUpgradeableStrategy {
+contract QuickGammaStrategyV2 is BaseUpgradeableStrategyV2 {
 
   using SafeMath for uint256;
   using SafeERC20 for IERC20;
 
-  address public constant quickRouter = address(0xa5E0829CaCEd8fFDD4De3c43696c57F7D7A678ff);
-  address public constant sushiRouter = address(0x1b02dA8Cb0d097eB8D57A175b88c7D8b47997506);
-  address public constant _uniProxy = address(0xA42d55074869491D60Ac05490376B74cF19B00e6);
-  address public constant WMATIC = address(0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270);
   address public constant dQuick = address(0x958d208Cdf087843e9AD98d23823d32E17d723A1);
   address public constant quick = address(0xB5C064F955D8e7F38fE0460C556a72987494eE17);
+  address public constant harvestMSIG = address(0x39cC360806b385C96969ce9ff26c23476017F652);
 
   // additional storage slots (on top of BaseUpgradeableStrategy ones) are defined here
   bytes32 internal constant _POOLID_SLOT = 0x3fd729bfa2e28b7806b03a6e014729f59477b530f995be4d51defc9dad94810b;
   bytes32 internal constant _UNIPROXY_SLOT = 0x09ff9720152edb4fad4ed05a0b77258f0fce17715f9397342eb08c8d7f965234;
 
   // this would be reset on each upgrade
-  mapping (address => mapping (address => address[])) public swapRoutes;
-  mapping (address => mapping (address => address)) public routers;
   address[] public rewardTokens;
 
-  constructor() public BaseUpgradeableStrategy() {
+  constructor() public BaseUpgradeableStrategyV2() {
     assert(_POOLID_SLOT == bytes32(uint256(keccak256("eip1967.strategyStorage.poolId")) - 1));
     assert(_UNIPROXY_SLOT == bytes32(uint256(keccak256("eip1967.strategyStorage.uniProxy")) - 1));
   }
@@ -44,20 +39,18 @@ contract QuickGammaStrategy is BaseUpgradeableStrategy {
     address _underlying,
     address _vault,
     address _rewardPool,
-    uint256 _poolID
+    uint256 _poolID,
+    address _rewardToken,
+    address _uniProxy
   ) public initializer {
 
-    BaseUpgradeableStrategy.initialize(
+    BaseUpgradeableStrategyV2.initialize(
       _storage,
       _underlying,
       _vault,
       _rewardPool,
-      WMATIC,
-      80, // profit sharing numerator
-      1000, // profit sharing denominator
-      true, // sell
-      1e18, // sell floor
-      12 hours // implementation change delay
+      _rewardToken,
+      harvestMSIG
     );
 
     address _lpt = IMasterChef(rewardPool()).lpToken(_poolID);
@@ -118,32 +111,8 @@ contract QuickGammaStrategy is BaseUpgradeableStrategy {
     _setPausedInvesting(false);
   }
 
-  function setDepositLiquidationPath(address [] memory _route, address _router) public onlyGovernance {
-    address tokenIn = _route[0];
-    address tokenOut = _route[_route.length-1];
-    require(tokenIn == WMATIC, "Path should start with WMATIC");
-    swapRoutes[tokenIn][tokenOut] = _route;
-    routers[tokenIn][tokenOut] = _router;
-  }
-
-  function setRewardLiquidationPath(address [] memory _route, address _router) public onlyGovernance {
-    address tokenIn = _route[0];
-    address tokenOut = _route[_route.length-1];
-    require(tokenOut == WMATIC, "Path should end with WMATIC");
-    bool isReward = false;
-    for(uint256 i = 0; i < rewardTokens.length; i++){
-      if (tokenIn == rewardTokens[i]) {
-        isReward = true;
-      }
-    }
-    require(isReward, "Path should start with a rewardToken");
-    swapRoutes[tokenIn][tokenOut] = _route;
-    routers[tokenIn][tokenOut] = _router;
-  }
-
-  function addRewardToken(address _token, address[] memory _path2WMATIC, address _router) public onlyGovernance {
+  function addRewardToken(address _token) public onlyGovernance {
     rewardTokens.push(_token);
-    setRewardLiquidationPath(_path2WMATIC, _router);
   }
 
   /**
@@ -166,26 +135,24 @@ contract QuickGammaStrategy is BaseUpgradeableStrategy {
     }
 
     address _rewardToken = rewardToken();
+    address _universalLiquidator = universalLiquidator();
     for(uint256 i = 0; i < rewardTokens.length; i++){
       address token = rewardTokens[i];
       if (token == quick){
         convertDQuickToQuick();
       }
       uint256 rewardBalance = IERC20(token).balanceOf(address(this));
-      if (swapRoutes[token][_rewardToken].length < 2 || rewardBalance == 0) {
+      if (rewardBalance == 0) {
         continue;
       }
-
-      address router = routers[token][_rewardToken];
-      IERC20(token).safeApprove(router, 0);
-      IERC20(token).safeApprove(router, rewardBalance);
-      // we can accept 1 as the minimum because this will be called only by a trusted worker
-      IUniswapV2Router02(router).swapExactTokensForTokens(
-        rewardBalance, 1, swapRoutes[token][_rewardToken], address(this), block.timestamp
-      );
+      if (token != _rewardToken){
+          IERC20(token).safeApprove(_universalLiquidator, 0);
+          IERC20(token).safeApprove(_universalLiquidator, rewardBalance);
+          IUniversalLiquidator(_universalLiquidator).swap(token, _rewardToken, rewardBalance, 1, address(this));
+      }
     }
     uint256 rewardBalance = IERC20(_rewardToken).balanceOf(address(this));
-    notifyProfitInRewardToken(rewardBalance);
+    _notifyProfitInRewardToken(_rewardToken, rewardBalance);
     uint256 remainingRewardBalance = IERC20(_rewardToken).balanceOf(address(this));
 
     if (remainingRewardBalance < 1e15) {
@@ -242,21 +209,12 @@ contract QuickGammaStrategy is BaseUpgradeableStrategy {
     uint256 toToken1
   ) internal returns(uint256, uint256){
     address tokenIn = rewardToken();
+    address _universalLiquidator = universalLiquidator();
     uint256 token0Amount;
-    if (swapRoutes[tokenIn][tokenOut0].length > 1) {
-      address router = routers[tokenIn][tokenOut0];
-      // allow to sell our reward
-      IERC20(tokenIn).safeApprove(router, 0);
-      IERC20(tokenIn).safeApprove(router, toToken0);
-
-      // if we need to liquidate the token0
-      IUniswapV2Router02(router).swapExactTokensForTokens(
-        toToken0,
-        1,
-        swapRoutes[tokenIn][tokenOut0],
-        address(this),
-        block.timestamp
-      );
+    if (tokenIn != tokenOut0){
+      IERC20(tokenIn).safeApprove(_universalLiquidator, 0);
+      IERC20(tokenIn).safeApprove(_universalLiquidator, toToken0);
+      IUniversalLiquidator(_universalLiquidator).swap(tokenIn, tokenOut0, toToken0, 1, address(this));
       token0Amount = IERC20(tokenOut0).balanceOf(address(this));
     } else {
       // otherwise we assme token0 is the reward token itself
@@ -264,20 +222,10 @@ contract QuickGammaStrategy is BaseUpgradeableStrategy {
     }
 
     uint256 token1Amount;
-    if (swapRoutes[tokenIn][tokenOut1].length > 1) {
-      address router = routers[tokenIn][tokenOut1];
-      // allow to sell our reward
-      IERC20(tokenIn).safeApprove(router, 0);
-      IERC20(tokenIn).safeApprove(router, toToken1);
-
-      // if we need to liquidate the token0
-      IUniswapV2Router02(router).swapExactTokensForTokens(
-        toToken1,
-        1,
-        swapRoutes[tokenIn][tokenOut1],
-        address(this),
-        block.timestamp
-      );
+    if (tokenIn != tokenOut1){
+      IERC20(tokenIn).safeApprove(_universalLiquidator, 0);
+      IERC20(tokenIn).safeApprove(_universalLiquidator, toToken1);
+      IUniversalLiquidator(_universalLiquidator).swap(tokenIn, tokenOut1, toToken1, 1, address(this));
       token1Amount = IERC20(tokenOut1).balanceOf(address(this));
     } else {
       // otherwise we assme token0 is the reward token itself
