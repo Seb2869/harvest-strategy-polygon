@@ -7,15 +7,15 @@ const {
 } = require("../utilities/hh-utils.js");
 
 const addresses = require("../test-config.js");
-const { send } = require("@openzeppelin/test-helpers");
 const BigNumber = require("bignumber.js");
 const IERC20 = artifacts.require("IERC20");
 
 //const Strategy = artifacts.require("");
 const Strategy = artifacts.require("AuraStrategyMainnet_jEUR_PAR");
 const VaultProxyContract = artifacts.require("VaultProxy");
+const VaultImplContract = artifacts.require("VaultERC4626");
 
-// Developed and tested at blockNumber 46661610
+// Developed and tested at blockNumber 51325000
 
 // Vanilla Mocha test. Increased compatibility with tools that integrate Mocha.
 describe("Polygon Mainnet Balancer 2EUR PAR", function() {
@@ -73,8 +73,8 @@ describe("Polygon Mainnet Balancer 2EUR PAR", function() {
       "underlying": underlying,
       "governance": governance,
     });
-
-    await vault.scheduleUpgrade("0x7424a4D57F8c223d58EC19348780EAa237F6b286", {from: governance});
+    const newImpl = await VaultImplContract.new()
+    await vault.scheduleUpgrade(newImpl.address, {from: governance});
     await Utils.waitHours(13);
     const vaultProxy = await VaultProxyContract.at(vault.address);
     await vaultProxy.upgrade({from: governance});
@@ -94,7 +94,7 @@ describe("Polygon Mainnet Balancer 2EUR PAR", function() {
       let newSharePrice;
       for (let i = 0; i < hours; i++) {
         console.log("loop ", i);
-
+        vault.withdraw(farmerOldBalance.div(10), {from: farmer1})
         oldSharePrice = new BigNumber(await vault.getPricePerFullShare());
         await controller.doHardWork(vault.address, { from: governance });
         newSharePrice = new BigNumber(await vault.getPricePerFullShare());

@@ -32,7 +32,7 @@ contract ReentrancyGuardUpgradeable is Initializable {
         _setNotEntered(_NOT_ENTERED_SLOT, true);
     }
 
-    function _getNotEntered(bytes32 slot) private view returns (bool) {
+    function _getNotEntered(bytes32 slot) internal view returns (bool) {
         uint str;
         // solhint-disable-next-line no-inline-assembly
         assembly {
@@ -41,7 +41,7 @@ contract ReentrancyGuardUpgradeable is Initializable {
         return str == 1;
     }
 
-    function _setNotEntered(bytes32 slot, bool _value) private {
+    function _setNotEntered(bytes32 slot, bool _value) internal {
         // solhint-disable-next-line no-inline-assembly
         assembly {
             sstore(slot, _value)

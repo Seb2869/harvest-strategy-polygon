@@ -14,7 +14,6 @@ import "./interface/IUpgradeSource.sol";
 import "./inheritance/ControllableInit.sol";
 import "./VaultStorageV2.sol";
 
-
 contract VaultV2 is ERC20Upgradeable, IUpgradeSource, ControllableInit, VaultStorageV2 {
   using SafeERC20Upgradeable for IERC20Upgradeable;
   using AddressUpgradeable for address;
@@ -365,5 +364,6 @@ contract VaultV2 is ERC20Upgradeable, IUpgradeSource, ControllableInit, VaultSto
   function finalizeUpgrade() external override onlyGovernance {
     _setNextImplementation(address(0));
     _setNextImplementationTimestamp(0);
+    ReentrancyGuardUpgradeable._setNotEntered(_NOT_ENTERED_SLOT, true);
   }
 }
