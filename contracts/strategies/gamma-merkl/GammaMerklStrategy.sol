@@ -7,13 +7,12 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "../../base/upgradability/BaseUpgradeableStrategyV2.sol";
 import "../../base/interface/IUniversalLiquidator.sol";
-import "../../base/interface/quickswap/IMasterChef.sol";
 import "../../base/interface/gamma/IHypervisor.sol";
 import "../../base/interface/gamma/IUniProxy.sol";
 import "../../base/interface/quickswap/IDragonLair.sol";
 import "../../base/interface/gamma/IClearing.sol";
 
-contract QuickGammaStrategyV2 is BaseUpgradeableStrategyV2 {
+contract GammaMerklStrategy is BaseUpgradeableStrategyV2 {
 
   using SafeMath for uint256;
   using SafeERC20 for IERC20;
@@ -23,14 +22,12 @@ contract QuickGammaStrategyV2 is BaseUpgradeableStrategyV2 {
   address public constant harvestMSIG = address(0x39cC360806b385C96969ce9ff26c23476017F652);
 
   // additional storage slots (on top of BaseUpgradeableStrategy ones) are defined here
-  bytes32 internal constant _POOLID_SLOT = 0x3fd729bfa2e28b7806b03a6e014729f59477b530f995be4d51defc9dad94810b;
   bytes32 internal constant _UNIPROXY_SLOT = 0x09ff9720152edb4fad4ed05a0b77258f0fce17715f9397342eb08c8d7f965234;
 
   // this would be reset on each upgrade
   address[] public rewardTokens;
 
   constructor() public BaseUpgradeableStrategyV2() {
-    assert(_POOLID_SLOT == bytes32(uint256(keccak256("eip1967.strategyStorage.poolId")) - 1));
     assert(_UNIPROXY_SLOT == bytes32(uint256(keccak256("eip1967.strategyStorage.uniProxy")) - 1));
   }
 
@@ -38,8 +35,6 @@ contract QuickGammaStrategyV2 is BaseUpgradeableStrategyV2 {
     address _storage,
     address _underlying,
     address _vault,
-    address _rewardPool,
-    uint256 _poolID,
     address _rewardToken,
     address _uniProxy
   ) public initializer {
@@ -48,14 +43,11 @@ contract QuickGammaStrategyV2 is BaseUpgradeableStrategyV2 {
       _storage,
       _underlying,
       _vault,
-      _rewardPool,
+      address(0),
       _rewardToken,
       harvestMSIG
     );
 
-    address _lpt = IMasterChef(rewardPool()).lpToken(_poolID);
-    require(_lpt == underlying(), "Pool Info does not match underlying");
-    _setPoolId(_poolID);
     setAddress(_UNIPROXY_SLOT, _uniProxy);
   }
 
@@ -63,35 +55,8 @@ contract QuickGammaStrategyV2 is BaseUpgradeableStrategyV2 {
     return true;
   }
 
-  function rewardPoolBalance() internal view returns (uint256 bal) {
-      (bal,) = IMasterChef(rewardPool()).userInfo(poolId(), address(this));
-  }
-
-  function exitRewardPool() internal {
-      uint256 bal = rewardPoolBalance();
-      if (bal != 0) {
-          IMasterChef(rewardPool()).withdraw(poolId(), bal, address(this));
-      }
-  }
-
-  function emergencyExitRewardPool() internal {
-      uint256 bal = rewardPoolBalance();
-      if (bal != 0) {
-          IMasterChef(rewardPool()).emergencyWithdraw(poolId(), address(this));
-      }
-  }
-
   function unsalvagableTokens(address token) public view returns (bool) {
     return (token == rewardToken() || token == underlying());
-  }
-
-  function enterRewardPool() internal {
-    address _underlying = underlying();
-    address _rewardPool = rewardPool();
-    uint256 entireBalance = IERC20(_underlying).balanceOf(address(this));
-    IERC20(_underlying).safeApprove(_rewardPool, 0);
-    IERC20(_underlying).safeApprove(_rewardPool, entireBalance);
-    IMasterChef(_rewardPool).deposit(poolId(), entireBalance, address(this));
   }
 
   /*
@@ -100,7 +65,6 @@ contract QuickGammaStrategyV2 is BaseUpgradeableStrategyV2 {
   *   The function is only used for emergency to exit the pool
   */
   function emergencyExit() public onlyGovernance {
-    emergencyExitRewardPool();
     _setPausedInvesting(true);
   }
 
@@ -235,24 +199,10 @@ contract QuickGammaStrategyV2 is BaseUpgradeableStrategyV2 {
   }
 
   /*
-  *   Stakes everything the strategy holds into the reward pool
-  */
-  function investAllUnderlying() internal onlyNotPausedInvesting {
-    // this check is needed, because most of the SNX reward pools will revert if
-    // you try to stake(0).
-    if(IERC20(underlying()).balanceOf(address(this)) > 0) {
-      enterRewardPool();
-    }
-  }
-
-  /*
   *   Withdraws all the asset to the vault
   */
   function withdrawAllToVault() public restricted {
     address _underlying = underlying();
-    if (address(rewardPool()) != address(0)) {
-      exitRewardPool();
-    }
     _liquidateReward();
     IERC20(_underlying).safeTransfer(vault(), IERC20(_underlying).balanceOf(address(this)));
   }
@@ -263,18 +213,7 @@ contract QuickGammaStrategyV2 is BaseUpgradeableStrategyV2 {
   function withdrawToVault(uint256 amount) public restricted {
     // Typically there wouldn't be any amount here
     // however, it is possible because of the emergencyExit
-    address _underlying = underlying();
-    uint256 entireBalance = IERC20(_underlying).balanceOf(address(this));
-
-    if(amount > entireBalance){
-      // While we have the check above, we still using SafeMath below
-      // for the peace of mind (in case something gets changed in between)
-      uint256 needToWithdraw = amount.sub(entireBalance);
-      uint256 toWithdraw = Math.min(rewardPoolBalance(), needToWithdraw);
-      IMasterChef(rewardPool()).withdraw(poolId(), toWithdraw, address(this));
-    }
-
-    IERC20(_underlying).safeTransfer(vault(), amount);
+    IERC20(underlying()).safeTransfer(vault(), amount);
   }
 
   /*
@@ -282,15 +221,11 @@ contract QuickGammaStrategyV2 is BaseUpgradeableStrategyV2 {
   *   amount of reward that is accrued.
   */
   function investedUnderlyingBalance() external view returns (uint256) {
-    address _underlying = underlying();
-    if (rewardPool() == address(0)) {
-      return IERC20(_underlying).balanceOf(address(this));
-    }
     // Adding the amount locked in the reward pool and the amount that is somehow in this contract
     // both are in the units of "underlying"
     // The second part is needed because there is the emergency exit mechanism
     // which would break the assumption that all the funds are always inside of the reward pool
-    return rewardPoolBalance().add(IERC20(_underlying).balanceOf(address(this)));
+    return IERC20(underlying()).balanceOf(address(this));
   }
 
   /*
@@ -312,9 +247,7 @@ contract QuickGammaStrategyV2 is BaseUpgradeableStrategyV2 {
   *   when the investing is being paused by governance.
   */
   function doHardWork() external onlyNotPausedInvesting restricted {
-    IMasterChef(rewardPool()).withdraw(poolId(), 0, address(this));
     _liquidateReward();
-    investAllUnderlying();
   }
 
   /**
@@ -323,15 +256,6 @@ contract QuickGammaStrategyV2 is BaseUpgradeableStrategyV2 {
   */
   function setSell(bool s) public onlyGovernance {
     _setSell(s);
-  }
-
-  // masterchef rewards pool ID
-  function _setPoolId(uint256 _value) internal {
-    setUint256(_POOLID_SLOT, _value);
-  }
-
-  function poolId() public view returns (uint256) {
-    return getUint256(_POOLID_SLOT);
   }
 
   function _setUniProxy(address _value) public onlyGovernance {

@@ -7,11 +7,11 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
 import "../../base/upgradability/BaseUpgradeableStrategy.sol";
-import "./interface/IMasterChef.sol";
-import "./interface/IHypervisor.sol";
-import "./interface/IUniProxy.sol";
-import "./interface/IDragonLair.sol";
-import "./interface/IClearing.sol";
+import "../../base/interface/quickswap/IMasterChef.sol";
+import "../../base/interface/gamma/IHypervisor.sol";
+import "../../base/interface/gamma/IUniProxy.sol";
+import "../../base/interface/quickswap/IDragonLair.sol";
+import "../../base/interface/gamma/IClearing.sol";
 
 contract QuickGammaStrategy is BaseUpgradeableStrategy {
 
