@@ -8,7 +8,7 @@ const IERC20 = artifacts.require("@openzeppelin/contracts/token/ERC20/IERC20.sol
 
 const Strategy = artifacts.require("UniswapGammaStrategyMainnet_USDC_DAI");
 
-//This test was developed at blockNumber 59565560
+//This test was developed at blockNumber	59227400
 
 // Vanilla Mocha test. Increased compatibility with tools that integrate Mocha.
 describe("Mainnet Uniswap-Gamma USDC-DAI", function() {
