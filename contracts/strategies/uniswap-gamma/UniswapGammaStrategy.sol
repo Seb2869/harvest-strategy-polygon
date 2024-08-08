@@ -5,14 +5,13 @@ pragma solidity 0.6.12;
 import "@openzeppelin/contracts/math/Math.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
-import '@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol';
 import "../../base/upgradability/BaseUpgradeableStrategyV2.sol";
 import "../../base/interface/IUniversalLiquidator.sol";
 import "../../base/interface/gamma/IHypervisor.sol";
 import "../../base/interface/gamma/IUniProxy.sol";
 import "../../base/interface/gamma/IStakingRewards.sol";
-import "../../base/interface/quickswap/IDragonLair.sol";
 import "../../base/interface/gamma/IClearing.sol";
+import "../../base/interface/uniswap/IUniswapV3Pool.sol";
 
 contract UniswapGammaStrategy is BaseUpgradeableStrategyV2 {
 
