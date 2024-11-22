@@ -12,21 +12,21 @@ const BigNumber = require("bignumber.js");
 const IERC20 = artifacts.require("IERC20");
 
 //const Strategy = artifacts.require("");
-const Strategy = artifacts.require("CompoundStrategyMainnet_USDC");
+const Strategy = artifacts.require("CompoundStrategyMainnet_USDT");
 
-// Developed and tested at blockNumber 64590290
+// Developed and tested at blockNumber 64590770
 
 // Vanilla Mocha test. Increased compatibility with tools that integrate Mocha.
-describe("Arbitrum Mainnet Compound USDC", function() {
+describe("Arbitrum Mainnet Compound USDT", function() {
   let accounts;
 
   // external contracts
   let underlying;
 
   // external setup
-  let underlyingWhale = "0x858F99B06eF1d116FF7A8306F504888584AAa83d";
+  let underlyingWhale = "0x010C01cf5a9ddb7D14df0900572d998Cad65E64D";
   let comp = "0x8505b9d2254A7Ae468c0E9dd10Ccea3A837aef5c";
-  let weth = "0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619";
+  let usdc = "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174";
 
   // parties in the protocol
   let governance;
@@ -41,7 +41,7 @@ describe("Arbitrum Mainnet Compound USDC", function() {
   let strategy;
 
   async function setupExternalContracts() {
-    underlying = await IERC20.at("0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174");
+    underlying = await IERC20.at("0xc2132D05D31c914a87C6611C10748AEb04B58e8F");
     console.log("Fetching Underlying at: ", underlying.address);
   }
 
@@ -67,13 +67,15 @@ describe("Arbitrum Mainnet Compound USDC", function() {
 
     await setupExternalContracts();
     [controller, vault, strategy] = await setupCoreProtocol({
-      "existingVaultAddress": "0x60d2cEb7F8d323414a1B927Ee2D9A2A2A54A9824",
-      "announceStrategy": true,
+      "existingVaultAddress": null,
       "strategyArtifact": Strategy,
       "strategyArtifactIsUpgradable": true,
       "underlying": underlying,
       "governance": governance,
-      "liquidation": [{"uniV3": [comp, underlying.address, weth]}, {"uniV3": [comp, underlying.address]}]
+      "liquidation": [
+        {"uniV3": [comp, usdc, underlying.address]},
+        // {"uniV3": [usdc, underlying.address]},
+      ]
     });
 
     // whale send underlying to farmers
