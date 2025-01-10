@@ -7,6 +7,7 @@ import "./BaseUpgradeableStrategyStorage.sol";
 import "../inheritance/ControllableInit.sol";
 import "../interface/IController.sol";
 import "../interface/IFeeRewardForwarder.sol";
+import "../interface/merkl/IDistributor.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
@@ -84,6 +85,10 @@ contract BaseUpgradeableStrategy is Initializable, ControllableInit, BaseUpgrade
         && nextImplementation() != address(0),
       nextImplementation()
     );
+  }
+
+  function toggleMerklOperator(address merklClaim, address operator) external onlyGovernance {
+    IDistributor(merklClaim).toggleOperator(address(this), operator);
   }
 
   // reward notification
